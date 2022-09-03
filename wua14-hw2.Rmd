@@ -1,0 +1,328 @@
+---
+title: "wua14_hw2"
+author: "Alex Wu"
+date: "2022-07-23"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+1.1
+<br>
+<br>
+
+```{r}
+
+gayy <- read.csv(file = "gay.csv")
+
+gayC <- subset(gayy, subset = treatment == "Same-Sex Marriage Script by Gay Canvasser" & wave == 1 & study == 1)
+straightC <- subset(gayy, subset = treatment == "Same-Sex Marriage Script by Straight Canvasser" & wave == 1 & study == 1)
+noC <- subset(gayy, subset = treatment == "No Contact" & wave == 1 & study == 1)
+```
+
+```{r}
+mean(gayC$ssm)
+```
+```{r}
+mean(straightC$ssm)
+```
+```{r}
+mean(noC$ssm)
+```
+The following three groups are quite similar.
+<br>
+<br>
+1.2
+
+```{r}
+gayC2 <- subset(gayy, subset = treatment == "Same-Sex Marriage Script by Gay Canvasser" & wave == 2 & study == 1)
+straightC2 <- subset(gayy, subset = treatment == "Same-Sex Marriage Script by Straight Canvasser" & wave == 2 & study == 1)
+noC2 <- subset(gayy, subset = treatment == "No Contact" & wave == 2 & study == 1)
+```
+
+```{r}
+meanGC2 <- mean(gayC2$ssm)
+```
+
+```{r}
+meanSC2 <-mean(straightC2$ssm)
+```
+
+```{r}
+meanNC2 <- mean(noC2$ssm)
+```
+
+ATEs
+```{r}
+
+meanGC2 - meanNC2
+```
+
+```{r}
+meanSC2 - meanNC2
+```
+The ATEs are positive and the straight canvasser is slightly larger than the gay canvasser
+<br>
+<br>
+1.3
+<br>
+<br>
+The purpose of the recycle is to likely access the test interviewer effect on a topic unrelated, which is used to control for the potential interviewer effect on the topic. In other words, it is a placebo.
+```{r}
+RGC2 <- subset(gayy, subset = treatment=="Recycling Script by Gay Canvasser" & study==1 & wave==2)
+RSC2 <- subset(gayy, subset = treatment=="Recycling Script by Straight Canvasser" & study==1 & wave==2)
+```
+
+```{r}
+#ATE, recycle vs gay
+mean(gayC2$ssm) - mean(RGC2$ssm)
+```
+
+```{r}
+#ATE, recycle vs straight
+mean(straightC2$ssm) - mean(RSC2$ssm)
+```
+There is a larger difference in attitude towards SSM for straight canvassers than the gay canvassers
+<br>
+<br>
+1.4
+<br>
+<br>
+```{r}
+ssmgc <- subset(gayy, subset = treatment=="Same-Sex Marriage Script by Gay Canvasser" & study==1)
+ssmsc <- subset(gayy, subset = treatment=="Same-Sex Marriage Script by Straight Canvasser" & study==1)
+nc <- subset(gayy, subset = treatment == "No Contact" & study == 1)
+```
+
+
+```{r}
+gayWaves <- tapply(ssmgc$ssm, ssmgc$wave, mean)
+straightWaves <- tapply(ssmsc$ssm, ssmsc$wave, mean)
+noWaves <-tapply(nc$ssm, nc$wave, mean)
+```
+```{r}
+gayWaves
+```
+```{r}
+straightWaves
+```
+```{r}
+noWaves
+```
+ATEs
+```{r}
+#Gay vs No Contact
+gayWaves - noWaves
+```
+```{r}
+#Straight vs No Contact
+straightWaves - noWaves
+```
+There seems to be a larger effect on the gay canvasser over time
+<br>
+<br>
+1.5
+```{r}
+GCs2w1 <- subset(gayy, subset = treatment=="Same-Sex Marriage Script by Gay Canvasser" & study==2 & wave==1)
+NCs2w1 <- subset(gayy, subset = treatment=="No Contact" & study==2 & wave==1)
+```
+Only gay canvassers study 2 and wave 1
+```{r}
+mean(GCs2w1$ssm)
+```
+
+```{r}
+mean(NCs2w1$ssm)
+```
+Pre-treatment randomization is appropriate as the means are quire similar
+<br>
+<br>
+
+1.6
+```{r}
+GCs2w2 <- subset(gayy, subset = treatment=="Same-Sex Marriage Script by Gay Canvasser" & study==2 & wave==2)
+NCs2w2 <- subset(gayy, subset = treatment=="No Contact" & study==2 & wave==2)
+```
+Wave 2 and Study 2
+```{r}
+mean(GCs2w2$ssm)
+```
+
+```{r}
+mean(NCs2w2$ssm)
+```
+
+```{r}
+mean(gayC2$ssm)
+```
+
+```{r}
+mean(noC2$ssm)
+```
+The results seem consitent and the gay canvassers have higher responses.
+<br>
+<br>
+```{r}
+GCs2 <- subset(gayy, subset = treatment=="Same-Sex Marriage Script by Gay Canvasser" & study==2)
+NCs2 <- subset(gayy, subset = treatment=="No Contact" & study==2)
+```
+
+```{r}
+#Gay vs No Contact
+tapply(GCs2$ssm, GCs2$wave, mean) - tapply(NCs2$ssm, NCs2$wave, mean)
+```
+There are noticably large effect, which increase over time.
+<br>
+<br>
+2.1
+```{r}
+fraud <- load("fraud.rdata")
+frac <- russia2011$votes/russia2011$turnout
+uniqueNum <- length(unique(frac))
+```
+
+```{r}
+hist(frac, breaks = uniqueNum)
+```
+Fractions with low numerators and denominators are abnormally high according to the histogram
+<br>
+<br>
+2.2
+```{r}
+nPrecinct <- nrow(russia2011)
+nVoters <- russia2011$N
+simulations <- 1000
+
+voteShareSim <- rep(NA, simulations * nPrecinct)
+
+for(i in 1:simulations){
+  for (j in 1:nPrecinct){
+    #turnout sims
+    temp <- rbinom(n= 1, size = nVoters[j], prob = russia2011$turnout[j] / russia2011$N[j])
+    #vote share sims
+    voteShareSim[i*j] <- rbinom(n = 1, size = temp,  prob = russia2011$turnout[j] / nVoters[j] )
+  }
+}
+hist(voteShareSim, breaks = length(voteShareSim))
+```
+We obtain an output similar to the previous histogram where low denominator/numerator fractions stand out.
+
+
+
+3.a.a
+```{r}
+library("readxl")
+gotv <- read_excel("gotv_individual.xlsx")
+gotv$sex[gotv$sex == "male"] <- 0
+gotv$sex[gotv$sex == "female"] <- 1
+gotv$sex <- as.integer(gotv$sex)
+#3.a.b
+gotv$yob = 2006 - gotv$yob
+names(gotv)[names(gotv) == "yob"] <- "age"
+```
+
+
+3.a.c
+```{r}
+library("dplyr")
+house_gotv <- gotv %>% group_by(hh_id,treatment) %>% summarise(hh_size = mean(hh_size), age = mean(age), sex = mean(sex), p2000 = mean(p2000), g2000 = mean(g2000), p2002 = mean(p2002), g2002 = mean(g2002), p2004 = mean(p2004), voted = mean(voted))
+house_gotv
+```
+3.a.d 
+<br>
+<br>
+The authors analyzed households rather than individuals because they are seeking out low bias and low variance within the data. Collectively analyze individuals instead of households may skew the data since individuals under households may share similar data.
+<br>
+<br>
+3.c
+```{r}
+meanY0 <- mean(house_gotv$voted[house_gotv$treatment == "Control"])
+meanY0
+```
+```{r}
+#Self
+mean(house_gotv$voted[house_gotv$treatment == "Self"]) - meanY0
+```
+```{r}
+#Civic Duty
+mean(house_gotv$voted[house_gotv$treatment == "Civic Duty"]) - meanY0
+```
+```{r}
+#Neighbors
+mean(house_gotv$voted[house_gotv$treatment == "Neighbors"]) - meanY0
+```
+```{r}
+#Hawthorne
+mean(house_gotv$voted_mean[house_gotv$treatment] == "Hawthorne") - meanY0
+```
+Assumptions that allow us to compute the ATE are consistency and unfoundedness as it allows us to recognize unbiasedness.
+<br>
+<br>
+3.d
+```{r}
+controlHHID <- house_gotv[house_gotv$treatment == "Control",]
+controlVar = var(controlHHID$voted)
+neighHHID <- house_gotv[house_gotv$treatment == "Neighbors", ]
+neighVar = var(neighHHID$voted)
+
+nTreatment = nrow(neighHHID)
+nControl = nrow(controlHHID)
+var = neighVar/nTreatment+ controlVar/nControl
+n = nControl + nTreatment
+zN = (sqrt(n)* (mean(neighHHID$voted) - mean(controlHHID$voted)))/sqrt(var)
+zStat <- zN
+zStat
+```
+
+3.e
+```{r}
+simData <- house_gotv %>% filter(treatment == "Neighbors" | treatment == "Control")
+
+simulations <- 1000
+nullSim <- rep(0, simulations)
+
+for (i in 1:simulations){
+  simData$controlpermute <- sample(simData$treatment == "Control")
+  controlSim <- simData[simData$treatment == "Control",]
+  nullCtrlVar = var(simData$voted[simData$controlpermute == 1])
+  neighSim <- simData[simData$treatment == "Neighbors",]
+  nullNeighVar = var(simData$voted[simData$controlpermute == 0])
+  
+  nullNTreat = nrow(neighSim)
+  nullNCtrl = nrow(controlSim)
+  nullVar = nullNeighVar/nullNTreat + nullCtrlVar/nullNCtrl
+  nullN = nullNCtrl + nullNTreat
+  
+  zN = (sqrt(nullN)* (mean(simData$voted[simData$controlpermute == 0]) - mean(simData$voted[simData$controlpermute == 1])))/ sqrt(nullVar)
+  
+  nullSim <- zN
+}
+hist(nullSim, main = "Z-Stat Distribution", xlab = "Z-stat", xlim = c(min(nullSim), max(nullSim)+zN), col = "blue")
+abline(v = zN, col = "firebrick", lwd = 2)
+```
+
+3.f
+<br>
+<br>
+The p value found in part e is smaller than part d due to the simulations
+
+
+
+
+
+
+
+
+
+

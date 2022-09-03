@@ -1,0 +1,318 @@
+---
+title: "wua14-hw4"
+author: "Alex Wu"
+date: "2022-08-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library("readxl")
+library("dplyr")
+library(magrittr)
+library(tinytex)
+library(tidyverse)
+library(jtools)
+library(interactions)
+vig <- read.csv(file = "vignettes.csv")
+```
+
+1.1
+```{r}
+vigChina <- subset(vig, subset = china == 1)
+vigMex <- subset(vig, subset = china == 0)
+
+
+barplot(table(vigChina$self), main = "Responses of China", xlab = "Response Type")
+```
+
+
+```{r}
+barplot(table(vigMex$self), main = "Responses of Mexico", xlab = "Response Type") 
+
+```
+```{r}
+mean(vigChina$self)
+```
+```{r}
+mean(vigMex$self)
+```
+Based on the data, China seems to have a higher degree of political efficacy. This contradicts our expectations political efficacy since Mexican citizens have the ability to vote and while the Chinese do not.
+
+<br>
+<br>
+1.2
+```{r}
+medChina <- median(vigChina$age)
+hist(vigChina$age) %>% abline(v= medChina,col="blue",lwd=2)
+```
+
+```{r}
+medMex <- median(vigMex$age)
+hist(vigMex$age) %>% abline(v= medMex,col="blue",lwd=2)
+```
+
+```{r}
+qqplot(vigChina$age, vigMex$age)
+```
+Based on the two histograms, the distributions that age of the Chinese are older than the Mexican respondents. In the QQ plot, this can be further from the distribution of the data points. Since most of the points are above the line, this shows that the Chinese respondents are usually older. This difference between the ages may also contribute to other significant differences present in the data. 
+<br>
+<br>
+
+1.3
+```{r}
+propChina <- vigChina$self/(vigChina$moses)
+sum(propChina < 1) / length(propChina < 1)
+```
+
+
+```{r}
+propMex <- vigMex$self/(vigMex$moses)
+sum(propMex < 1) / length(propMex < 1)
+```
+The percentage of Mexican respondents who rate themselves below Moses is approximately 25%. Meanwhile, apporximately 56% of Chinese citizens rate themselves below Moses. Compared to the previous result, the new result is different. For Chinese citizens that there is a large difference between how they feel they have "A lot to say" and the actual level when compared to Moses. The vignette level for Moses is higher compared to how much they claim. 
+<br>
+<br>
+1.4
+
+```{r error = TRUE}
+#China
+orderChina <- subset(vigChina, subset = vigChina$alison > vigChina$jane & vigChina$jane > vigChina$moses)
+orderMex <- subset(vigMex,vigMex$alison > vigMex$jane & vigMex$jane > vigMex$moses)
+
+orderChina$rank <- if (orderChina$self < orderChina$moses) 
+  
+orderChina$rank[orderChina$self < orderChina$moses] <- 1
+orderChina$rank[orderChina$self >= orderChina$moses & orderChina$self < orderChina$jane] <- 2
+orderChina$rank[orderChina$self >= orderChina$jane & orderChina$self < orderChina$alison] <- 3 
+orderChina$rank[orderChina$self >= orderChina$alison] <- 4
+
+#Mexico
+
+
+orderMex$rank[orderMex$self < orderMex$moses] <- 1
+orderMex$rank[orderMex$self >= orderMex$moses & orderMex$self < orderMex$jane] <- 2
+orderMex$rank[orderChina$self >= orderMex$jane & orderMex$self < orderMex$alison] <- 3 
+orderMex$rank[orderMex$self >= orderMex$alison] <- 4
+
+labels <- c("< Moses",">= Moses &\n < Jane",">= Jane &\n < Alison",">= Alison")
+chinaTable<- prop.table(table(orderChina$rank))
+barplot(chinaTable, xlab = "Response Category", ylab = "Proportion of Respondents",  names = labels, main = "China")
+```
+```{r error = TRUE}
+#Bar plot Mexico
+mexTable <- prop.table(table(orderMex$rank))
+barplot(mexTable, xlab = "Response Category", ylab = "Proportion of Respondents", names = labels, main = "Mexico")
+```
+We can observe that the Chinese citizens now have a lower level of efficacy. Compared to part 1, we observed that Chinese citizens had a higher political efficacy. Looking at the rankings, most of the Mexican citizens give themselves a higher rating, whereas most Chinese citizens rank themselves as being lower than Moses. This shows that the respondents understand ratings in different ways. Because the method restricts respondents to how they compare to the vignettes, a more appropriate conclusion can be made from observations about China and Mexico's political efficacy. 
+<br>
+<br>
+1.5
+```{r error = TRUE}
+oldOrdChina <- subset(orderChina, age >= 40)
+youngOrdChina <- subset(orderChina, age < 40)
+oldOrdMex <- subset(orderMex, age >= 40)
+youngOrdMex <- subset(orderMex, age < 40)
+
+selfChina <- rbind(prop.table(table(oldOrdChina$self)), prop.table(table(youngOrdChina$self))) 
+barplot(selfChina, ylab="Proportion of repondents", xlab= "Response Type", main = "China, greater and less than 40 for old response types", beside = TRUE, names = labels)
+```
+```{r error = TRUE}
+chinaRank <- rbind(prop.table(table(oldOrdChina$rank)),prop.table(table(youngOrdChina$rank))) 
+barplot(chinaRank, ylab="Proportion of Repondents", xlab= "Response Type", main = "China, greater and less than 40 for other response types", beside = TRUE, names = labels)
+```
+
+
+
+```{r error = TRUE}
+selfMex <- rbind(prop.table(table(oldOrdMex$self)), prop.table(table(youngOrdMex$self))) 
+barplot(selfMex, ylab="Proportion of repondents", xlab= "Response Type", main = "Mexico, greater and less than 40 for old response types", beside = TRUE, names = labels)
+```
+
+
+```{r error = TRUE}
+mexRank <- rbind(prop.table(table(oldOrdMex$rank)),prop.table(table(youngOrdMex$rank))) 
+barplot(mexRank, ylab="Proportion of Repondents", xlab= "Response Type", main = "Mexico, greater and less than 40 for other response types", beside = TRUE, names = labels)
+```
+China and Mexico share a similar pattern in terms of respondents. We can state that the different age distributions do not contribute nor make conclusions about the problem identified earlier. We can also observe that the self-assessment answers for both younger and older survey respondents contain bias.
+
+<br>
+<br>
+2.1
+```{r}
+prog <- read.csv(file = "progresa.csv")
+turnEst <- lm(t2000 ~ treatment, data= prog)
+summary(turnEst)
+```
+```{r}
+supporEst <- lm(pri2000s ~ treatment, data = prog)
+summary(supporEst)
+```
+The outcomes on turnout and support for incumbent party show that the "treated" precinct has increased. This shows that the average turnout and treatment effect support the hypothesis in being true. The average treatment groups calculated above turnout was approximately 4% more than control groups. The regression also supports this since the treatment effect turnout increased about 4.27%. Meanwhile, the treatment effect for support increased of 3.622%. Therefore, it is clear that the original hypothesis of the CCT program mobilizing voters is correct. 
+<br>
+<br>
+2.2
+```{r}
+ogTurn <- lm(t2000 ~ treatment + avgpoverty + pobtot1994 + votos1994 
+                 + pri1994 + pan1994 + prd1994, data = prog)
+summary(ogTurn)
+```
+```{r}
+ogSup <- lm(pri2000s ~ treatment + avgpoverty + pobtot1994 + votos1994 
+                 + pri1994 + pan1994 + prd1994, data= prog)
+summary(ogSup)
+```
+The original model shows an increase of 4.55% for treatment effect of early progresa, while there is an increase of 2.93% for treatment effect of support for the incumbent party.Compared to the previous question, the treatment effect is larger for overall turnout, whilst the treatment effect is lower for incumbent support. 
+<br>
+<br>
+2.3
+```{r}
+#Voter turnout effect calculation 
+turn2 <- lm(t2000 ~ treatment + avgpoverty + log(pobtot1994) + t1994 
+                 + pri1994s + pan1994s + prd1994s, data = prog)
+summary(turn2)
+```
+```{r}
+#Support effect calculation
+supp2 <- lm(pri2000s ~ treatment + avgpoverty + log(pobtot1994) + t1994 
+                 + pri1994s + pan1994s + prd1994s, data = prog)
+summary(supp2)
+```
+```{r}
+#R-squared  for original turnout model 
+summary(ogTurn)$adj.r.squared
+```
+
+```{r}
+#R-squared for new turnout model 
+summary(turn2)$adj.r.squared
+```
+
+```{r}
+#R-squared for original support model 
+summary(ogSup)$adj.r.squared
+```
+
+```{r}
+#R-squared for new support model 
+summary(supp2)$adj.r.squared
+```
+The new model results are drastically from the previous results. As seen above, the treatment effect of early progresa decreased 0.15% for voter turnout and slightly increased 0.23% for support to the incumbent party. These new ones are much lower compared to the previous results. However, the data is superior than the original model because we can see that that the new model r-squared values (0.687 turnout and 0.572 support) are much higher than ones of the original model (0.063 turnout and 0.208 support). Both of the values are greater than 0.55 which means that the inputs can explain variation for over 55% within the model. Thus, we can conclude that this new model fits the data better than the other. 
+
+
+2.4
+```{r}
+#precinct population plot
+boxplot(pobtot1994/1000 ~ treatment, data = prog, ylab = "Precinct Population 1000x", xlab= "Treatment", main = "Precinct population per group")
+```
+
+```{r}
+#average poverty plot
+boxplot(avgpoverty ~ treatment, data= prog, ylab = "Average poverty", xlab = "Treatment", main = "Average poverty per group")
+```
+
+```{r}
+#previous turnout rate plot 
+boxplot(t1994 ~ treatment, data = prog, ylab = "Previous turnout rate", xlab = "Treatment", main = "Previous turnout rate per group")
+```
+
+```{r}
+boxplot(pri1994s ~ treatment, data = prog, ylab = "Previous PRI support rate", xlab = "Treatment", main = "Previous PRI support rate per group")
+```
+Based on the box plots above, the difference between distribution of the treatment and control groups is very small. This means they are about evenly distributed as each box plot shows the percentiles and means are equal in terms of placement. However, the treatment group contains more outliers. Recognizing this is important because although the distribution is not greatly affect between the two groups, the outliers can still make misleading conclusions made from the impact of the treatment effect due to skewed data. 
+<br>
+<br>
+2.5
+```{r}
+#Official turnout rate effect 
+officialTurn <- lm(t2000r ~ treatment + avgpoverty + log(pobtot1994) + t1994r + pri1994v + pan1994v + prd1994v, data = prog)
+officialTurn
+```
+
+```{r}
+#Official PRI vote share 
+officialSup <- lm(pri2000v ~ treatment + avgpoverty + log(pobtot1994) + t1994r + pri1994v + pan1994v + prd1994v, data = prog)
+officialSup
+```
+The treatment effect from the official turnout rate is technically about -1.0809%. This is intrguing since the initial hypothesis stated that voter turnout would increase as a result of the treatment. For the official PRI support, the progresa treatment effect is about +0.80172%. The official PRI support treatment effect is consistent with the hypothesis that the treatment would increase support for the incumbent party as opposed to the official turnout rate. 
+<br>
+<br>
+2.6
+
+```{r}
+povertyEst <- lm(t2000r ~ treatment + log(pobtot1994) + avgpoverty + I(avgpoverty^2) + avgpoverty:treatment + I(avgpoverty^2):treatment, data = prog)
+povertyEst
+```
+
+```{r}
+#Predicted turnout rate for treatment
+yT_hat <- predict(povertyEst, prog = data.frame(avgpoverty = 3:5, treatment = 1))
+yC_hat <- predict(povertyEst, prog = data.frame(avgparty = 3:5, treatment = 0))
+```
+
+```{r echo=TRUE}
+#Average effects and poverty level plot 
+interact_plot(povertyEst, pred = avgpoverty, modx=treatment, data = prog, colors = "Blues", line.thickness = 2, x.label="Average Poverty", y.label="Estimated ATE", main="Estimated ATE as a function of Average Poverty")
+```
+According to the plot, the group more willing to vote had received the CCT first and has a lower level of poverty. For the group that had received the CCT later, the participants who had a higher poverty score were less to go vote, while those with a lower poverty score were more likely to go and vote. 
+<br>
+<br>
+
+3.1
+
+$$
+E[Y_i|D_i = 1, X_i = 1] =  \beta + \tau  \\
+E[Y_i|D_i = 0, X_i = 1] = \beta  \\
+E[Y_i|D_i = 1, X_i = 0] = \tau  \\
+E[Y_i|D_i = 0, X_i = 0] = 0 \\
+$$
+
+We can de-mean 
+$X_i$, let $\tilde X_{ij} = X_{ij} - \frac{1}{n}\sum_{k=1}^n X_{kj}$, such that:
+
+$$
+Y_i|\tilde X_i,D_i = \tilde X_i \beta + \tau D_i + \epsilon_i \\
+E[Y_i|\tilde X_i = 0,D_i] = E[ \tau D_i + \epsilon_i]\\
+E[Y_i|D_i] = E[\tau D_i]\\
+E[Y_i|D_i=1] - E[Y_i|D_i=0] = \tau * 1 - \tau * 0 = \tau\\
+Y_i|\tilde X_i,D_i = \tau \\
+$$
+
+Due to homoeskadasticity 
+$var(Y_1) = var(Y_2) = ...= var(Y_n)$
+<br>
+<br>
+3.2
+
+The expected value of an indicator function would be the probability that the indicator function is 1
+$$
+E[D_i | X_i = x] = 1 \\
+Pr(D_i = 1 | X_i = x) + 0 \\
+Pr(D_i = 0| X_i = x) = Pr(X_i \gamma + v_i >0| X_i =x) \\
+= Pr(x\gamma+v_i>0) = Pr(v_i > -x\gamma)\\
+Because \ v_i \ is \  N(0,1) \\
+E[D_i | X_i = x] = Pr(v_i > -x\gamma) = 1 - Pr(v_i <= -x\gamma) = 1-\phi(-x\gamma) \\
+where \ \phi \ is \ CDF \ of \ N(0,1) \\ 
+Since \ N(0,1) \ is \ symmetric \ around \ 0,\\
+1- \phi(-x\gamma) = \phi(x\gamma) \\ 
+Therefore, \ E[D_i | X_i = x] = \phi(x\gamma) \\ 
+So \ E[D_i | X_i = 1] = \phi(\gamma) \ and\ E[D_i | X_i = 0] \\ 
+= \phi(0) = 0.5
+$$
+<br>
+<br>
+3.3
+<br>
+<br>
+Applying the content from 3.2:
+<br>
+<br>
+$$
+Pr(X_i=1 | D_i = 1) = \frac {Pr(D_i = 1 | X_i = 1) Pr(X_i = 1)}{Pr(D_i = 1|X_i = 1) Pr(X_i =1) + Pr(D_i = 1|X_i = 0) Pr(X_i =0) } \\
+= \frac{(0.5) \pi}{(0.5) \pi + 0.5 (1 - \pi)} \\
+= \frac{0.5 \pi}{0.5} =\pi \\
+Pr(X_i=1 | D_i = 0) = \frac {Pr(D_i = 0 | X_i = 1) Pr(X_i = 1)}{Pr(D_i = 0|X_i = 1) Pr(X_i =1) +Pr(D_i = 0|X_i = 0) Pr(X_i =0) } \\
+= \frac{(-0.5) \pi}{(- 0.5) \pi + 0.5 (1 - \pi)} \\
+= \frac{-0.5\pi}{0.5} = -\pi
+$$
+
+

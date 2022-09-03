@@ -1,0 +1,473 @@
+---
+title: "wua14-hw3"
+author: "Alex Wu"
+date: "2022-07-30"
+output: html_document
+---
+
+```{r include = FALSE}
+
+
+
+```
+```{r}
+library("broom")
+library("tidyverse")
+library("dbplyr")
+library("readstata13")
+library("MatchIt")
+library("estimatr")
+library("readxl")
+
+gotv <- read_excel("gotv_individual.xlsx")
+```
+
+
+1.a.1
+```{r}
+gotv$num_voted <- gotv$g2000 + gotv$p2000 + gotv$g2002 + gotv$p2002 + gotv$p2004
+```
+1.a.2
+```{r}
+library("dplyr")
+new_gotv <- subset(gotv, select = c("hh_id", "hh_size","num_voted","voted","treatment"), subset = (treatment=="Neighbors"|treatment=="Control"))
+```
+1.a.3
+```{r}
+group_gotv <- new_gotv %>% group_by(hh_id)  
+group_gotv %>% summarize(hh_size = mean(hh_size),num_voted=mean(num_voted),voted=mean(voted), treatment=unique(treatment)) 
+group_gotv <- mutate(group_gotv,num_voted=round(num_voted,digits = 0))
+```
+1.a.4
+```{r}
+group_gotv %>% count(treatment)
+```
+We can observe that the number of units in treatment is significantly smaller than the number of units within the control group. 
+<br>
+<br>
+1.b
+```{r}
+#Function for difference in mean
+meanDiff <- function(treat, control){
+  # standard error
+  se <- sqrt(var(treat)/length(treat) + var(control)/length(control))
+  #point estimation
+  point <- mean(treat) - mean(control)
+  # asymptotic 95% confidence interval
+  CI95 <- c(point - qnorm(.975)*se, point + qnorm(.975)*se)
+  # p value 
+  pVal <- 2*pnorm(-abs(point/se))
+  #data frame output
+  output <- data.frame(meanTreat = mean(treat), meanControl = mean(control), ATE = point, se = se, var = se^2, ci95Low = CI95[1], ci95High = CI95[2], pvalue = pVal)
+  
+  return(as_tibble(output))
+
+}
+
+cateData <- data.frame(meanTreat = c(NA),meanControl = c(NA), ATE = c(NA), se = c(NA),var = c(NA), ci95Low = c(NA), ci95High = c(NA), pvalue = c(NA))
+
+for (i in 0:5){
+  treatGroup <- subset(group_gotv, subset = (num_voted == i&treatment=="Neighbors"))
+  controlGroup <- subset(group_gotv, subset = (num_voted == i&treatment=="Control"))
+  cateData <- rbind(cateData, meanDiff(treatGroup$voted, controlGroup$voted))
+}
+cateData <- na.omit(cateData)
+rownames(cateData) <- 0:5
+cateData
+```
+We can conclude that within different subgroups, variance and CATE tend to differ from each other. Some of the subgroups have confidence interval which is close to/is 0. This suggests the treatment effect may not be statistically significant.
+<br>
+<br>
+1.c
+```{r}
+# meanDiffDiff <- function(treat1, control1, treat2, control2){
+  
+  # Obtaining differences
+  # diff1 <- meanDiff(treat1, control1)
+  # diff2 <- meanDiff(treat2, control2)
+  
+  #standard error
+  # se <- sqrt(diff1$se^2 + diff2$se^2)
+  #point estimation
+  # point <- diff1$est - diff2$est
+  # asymptotic 95% confidence interval
+  # ci95 <- c((point - qnorm(.975)*se) , (point + qnorm(.975)*se))
+  #p-value 
+  # pVal <- 2*pnorm(-abs(point/se))
+  
+  
+  #data frame output
+  # output <- data.frame(diff = point, se = se, ci95Low = ci95[1], ci95High = ci95[2], pvalue = pVal)
+  # return(as_tibble(output))
+# }
+
+#treat1 <- subset(group_gotv, subset = (num_voted == 0&treatment=="Neighbors"))
+#control1 <- subset(group_gotv, subset = (num_voted == 0&treatment=="Control"))
+#treat2 <- subset(group_gotv, subset = (num_voted == 5&treatment=="Neighbors"))
+#control2 <- subset(group_gotv, subset = (num_voted == 5&treatment=="Control"))
+
+#meanDiffDiff(treat1$voted, control1$voted, treat2$voted, control2$voted)
+
+#Knit error: 
+#arguments imply differing number of rows: 0, 1
+```
+We can't say that there is a significant difference in the treatment effect because the CI includes 0. For part b, we are unable to conclude that treatment of the group 5 is significant. Thus, we also are unable to conclude that there is significance in the treatment effect different between group 0 and 5.
+<br>
+<br>
+1.d
+<br>
+<br>
+More hypothesis/subgroups will lead to results with less bias but more variance. This higher variance allows the confidence interval to be larger. Thus, the CI will higher a higher chance of including 0, resulting a significant effect to be harder to detect.
+<br>
+<br>
+2.a
+```{r}
+meanDiff(group_gotv$voted[group_gotv$treatment=="Neighbors"], group_gotv$voted[group_gotv$treatment=="Control"])
+```
+2.b
+```{r}
+VAR <- 0
+ATE <- 0
+N <- nrow(group_gotv)
+
+for (i in 0:5){
+  treatGroup <- subset(group_gotv, subset = (num_voted == i&treatment=="Neighbors"))
+  controlGroup <- subset(group_gotv, subset = (num_voted == i&treatment=="Control"))
+  Nx <- nrow(treatGroup)+nrow(controlGroup)
+  CATE <- meanDiff(treatGroup$voted, controlGroup$voted)$est
+  var <- meanDiff(treatGroup$voted, controlGroup$voted)$se^2
+  ATE <- ATE+CATE*Nx/N
+  VAR <- var*(Nx/N)^2
+  
+}
+
+CI <- c(ATE-qnorm(0.975)*sqrt(VAR),ATE+qnorm(0.975)*sqrt(VAR))
+Z <- ATE/sqrt(VAR)
+CI
+```
+```{r}
+VAR
+```
+```{r}
+ATE
+```
+The CI is (0.08005564, 0.08210236). The ATE is 0.081079 and variance is 2.726215e-07. The ATE estimates is slightly greater than previous one. The variance of the ATE is significantly lesser than previous one. This demonstrates that the co variate for stratification correlates with the outcome, so the STD for treatment and control within each given strata is smaller. 
+<br>
+<br>
+2.c
+```{r}
+treatGroup <- subset(group_gotv, subset = (treatment=="Neighbors"))
+controlGroup <- subset(group_gotv, subset = (treatment=="Control"))
+
+t1 <- treatGroup[1:3333,]
+c1 <- controlGroup[1:16666,]
+ATE1 <- mean(t1$voted) - mean(c1$voted)
+VAR1 <- var(t1$voted)/nrow(t1)+var(c1$voted)/nrow(c1)
+
+t2 <- treatGroup[3334:6666,]
+c2 <- controlGroup[16667:33332,]
+ATE2 <- mean(t2$voted) - mean(c2$voted)
+VAR2 <- var(t2$voted)/nrow(t2)+var(c2$voted)/nrow(c2)
+
+t3 <- treatGroup[6667:9999,]
+c3 <- controlGroup[33333:49998,]
+ATE3 <- mean(t3$voted) - mean(c3$voted)
+VAR3 <- var(t3$voted)/nrow(t3)+var(c3$voted)/nrow(c3)
+
+t4 <- treatGroup[10000:13332,]
+c4 <- controlGroup[49999:66664,]
+ATE4 <- mean(t4$voted) - mean(c4$voted)
+VAR4 <- var(t4$voted)/nrow(t4)+var(c4$voted)/nrow(c4)
+
+t5 <- treatGroup[13333:16665,]
+c5 <- controlGroup[66665:83330,]
+ATE5 <- mean(t5$voted) - mean(c5$voted)
+VAR5 <- var(t5$voted)/nrow(t5)+var(c5$voted)/nrow(c5)
+
+t6 <- treatGroup[16666:19998,]
+c6 <- controlGroup[83331:99996,]
+ATE6 <- mean(t6$voted) - mean(c6$voted)
+VAR6 <- var(t6$voted)/nrow(t6)+var(c6$voted)/nrow(c6)
+
+ATE.s6 <- (ATE1 + ATE2 + ATE3 + ATE4 + ATE5 + ATE6)/6
+
+STD.s6 <- ((VAR1 + VAR2 + VAR3 + VAR4 + VAR5 + VAR6)/36)^0.5
+
+ATE.s6
+STD.s6^2
+lower.s6 <- ATE.s6 - STD.s6*qnorm(0.975)
+higher.s6 <- ATE.s6 + STD.s6*qnorm(0.975)
+c(lower.s6,higher.s6)
+```
+ATE is approximately 0.07725704, the variance is 1.410685e-05 and the confidence interval is (0.06989559 0.08461848). The result is similar to the results in part a. This is likely because the stratification assignment is uncorrelated with the outcome.
+<br>
+<br>
+3.a
+<br>
+<br>
+$$
+τ = ∑[E[Y_i|D_i = 1, X_i = x] − E[Y_i|D_i = 0, X_i = x]] Pr(X_i = x) 
+\\= ∑[E[Y_i(1)|D_i = 1, X_i = x] − E[Y_i(0)|D_i = 0, X_i = x]] Pr(X_i = x) 
+\\= ∑[E[Y_i(1)|X_i = x] − E[Y_i(0)|X_i = x]] Pr(X_i = x)
+\\= ∑[E[Y_i(1) − Y_i(0)|X_i = x]] Pr(X_i = x) 
+\\= E[Y_i(1) − Y_i(0)]
+$$
+<br>
+<br>
+3.b
+<br>
+<br>
+$$
+E[\hat{τ}] = E[∑(\hat{τ}(g)\frac{N_g}{N}] 
+\\= E[ ∑ (E[Y_i(1) − Y_i(0)|G_i=g,N_g=n_g])\frac{N_g}{N}]
+\\= E[ ∑ (E[Y_i(1) − Y_i(0)|G_i=g,N_g=n_g])Pr(G_i=g)]
+\\= E[ ∑(E[Y_i(1) − Y_i(0)|N_g=n_g])] 
+\\= E[Y_i(1) − Y_i(0)] 
+\\= ATE
+$$
+<br>
+<br>
+3.c
+<br>
+<br>
+$$
+We \;can\; derive
+\\ E[D_iY_i/e(G_i)] = E[E[D_iY_i(1)|G_i=g]/e(G_i)]
+\\ = E[E[D_i|G_i=g]*E[Y_i(1)|G_i=g]/e(G_i)] 
+\\= E[E[Y_i(1)|G_i=g]] 
+\\= E[Y_i(1)]
+
+\\Similarly
+
+\\E[(1-D_i)Y_i/(1-e(G_i))] = E[Y_i(0)]
+
+\\Thus, 
+
+\\E[\hat{τ}_w] = (\frac{1}{N})∑[E[Y_i(1) - Y_i(0)]]
+$$
+<br>
+<br>
+4.1
+<br>
+<br>
+Colliders are M and Y 
+<br>
+<br>
+Non-colliders are X, A and Z
+<br>
+<br>
+4.2
+<br>
+<br>
+We should condition on X since the path A<-X->Y is a backdoor path which is not blocked. We should not condition on Z. Conditioning Z results in the path A->Z->Y which is valid causal path path and is blocked
+<br>
+<br>
+4.3
+<br>
+<br>
+The following backdoor paths are:
+<br>
+<br>
+M<-Z->Y: condition on Z
+<br>
+<br>
+M<-A->Z->Y: condition on Z
+<br>
+<br>
+M<-A<-X->Y: condition on X
+<br>
+<br>
+Therefore, we need to condition on Z and X
+<br>
+<br>
+```{r}
+trc <- read.dta13("trc_data.dta")
+```
+
+5.a
+```{r}
+meanDiff(trc$RUSTAND[trc$TRCKNOW==1],trc$RUSTAND[trc$TRCKNOW==0])
+```
+The estimated ATE is -0.2177317 and the CI is (-0.3046191, -0.1308444). Thus the result is significantly significant but the treatment effect is negative 
+<br>
+<br>
+5.b
+```{r}
+trcSTD <- trc%>%mutate(age=age/sd(age), female=female/sd(female),wealth=wealth/sd(wealth),religiosity=religiosity/sd(religiosity),ethsalience=ethsalience/sd(ethsalience),rcblack=rcblack/sd(rcblack),rcwhite=rcwhite/sd(rcwhite),rccol=rccol/sd(rccol),EDUC=EDUC/sd(EDUC))
+
+trcBal <- trcSTD%>%group_by(TRCKNOW)%>%summarise(age=mean(age), female=mean(female),wealth=mean(wealth),religiosity=mean(religiosity),ethsalience=mean(ethsalience),rcblack=mean(rcblack),rcwhite=mean(rcwhite),rccol=mean(rccol),EDUC=mean(EDUC))
+trcBal
+
+```
+The exposed group tend to have higher age, religiosity score, proportion of colored people compared to the unexposed. The exposed also tend to have lower female proportion, wealth, ethsalience, black proportion, white proportion, and level of education compared to the unexposed
+<br>
+<br>
+5.c
+```{r}
+pScoreModel <- glm(TRCKNOW ~ age+female+wealth+religiosity+ethsalience+rcblack+rcwhite+rccol+EDUC, data=trc, family=binomial(link="logit"))
+tidy(pScoreModel)
+
+trc$e <- predict(pScoreModel, type = "response")
+
+trc$wt <- NA
+trc$wt[trc$TRCKNOW == 1] <- mean(trc$TRCKNOW==1)/trc$e[trc$TRCKNOW==1]
+trc$wt[trc$TRCKNOW == 0] <- mean(trc$TRCKNOW==0)/(1 - trc$e[trc$TRCKNOW==0])
+
+pointWTD <- sum(trc$RUSTAND[trc$TRCKNOW == 1]*trc$wt[trc$TRCKNOW == 1])/sum(trc$wt[trc$TRCKNOW == 1]) - 
+  sum(trc$RUSTAND[trc$TRCKNOW == 0]*trc$wt[trc$TRCKNOW == 0])/sum(trc$wt[trc$TRCKNOW == 0])
+pointWTD
+```
+```{r}
+hist(trc$e[trc$TRCKNOW == 1], xlab="Propensity Score", main="Propensity Scores among Treated", xlim=c(0, 1), breaks = 30)
+```
+```{r}
+hist(trc$e[trc$TRCKNOW == 0], xlab="Propensity Score", main="Propensity Scores among Control", xlim=c(0, 1), breaks = 30)
+
+```
+The point estimate is -0.1631028
+<br>
+<br>
+5.d
+```{r}
+
+nBoot <- 1000 
+ATEboot <- rep(NA, nBoot)
+
+for(boot in 1:nBoot){
+  trcBoot <- trc[sample(1:nrow(trc), nrow(trc), replace=T),] 
+  
+  pScoreModelBoot <- glm(TRCKNOW ~ age+female+wealth+religiosity+ethsalience+rcblack+rcwhite+rccol+EDUC, data=trcBoot, family=binomial(link="logit"))
+  
+  trcBoot$e <- predict(pScoreModelBoot, type = "response")
+  
+  trcBoot$stb_wt <- (mean(trcBoot$TRCKNOW==1)/trcBoot$e) * trcBoot$TRCKNOW +  
+    (mean(trcBoot$TRCKNOW==0)/(1 - trcBoot$e)) * (1 - trcBoot$TRCKNOW)
+  
+  ATEboot[boot] <- weighted.mean(trcBoot$RUSTAND[trcBoot$TRCKNOW == 1], trcBoot$stb_wt[trcBoot$TRCKNOW == 1]) - 
+  weighted.mean(trcBoot$RUSTAND[trcBoot$TRCKNOW == 0], trcBoot$stb_wt[trcBoot$TRCKNOW == 0])
+}
+
+sd(ATEboot)
+
+c(pointWTD - qnorm(.975)*sd(ATEboot), 
+  pointWTD + qnorm(.975)*sd(ATEboot))
+quantile(ATEboot, c(.025, .975))
+```
+STD for the estimate is 0.04434337 and CI is (-0.25001417 -0.07619137). 
+For part a, the ATE is -0.2177317 and the CI is (-0.3046191, -0.1308444). STD for estimate is 0.04433111. 
+
+The naive difference in means estimate is smaller than the balanced outcome. This is reasonable because the treatment is not assigned randomly. Thus, more racially hostile people will have greater exposure to TRC. 
+<br>
+<br>
+6
+```{r}
+trc <- read.dta13("trc_data.dta")
+
+pairwise.mahal = function(x, group=NULL, cov =NULL, inverted=FALSE, digits = 5, ...) 
+{
+  #Takes input data and standardizes into matrix
+	x <- if (is.vector(x)) 									
+    	matrix(x, ncol = length(x))
+    else as.matrix(x)
+
+	if(!is.matrix(x))
+		stop("Could not convert into a matrix")
+	
+  #If no group, use the first col
+ 	if(length(group) == 0){								
+		group = t(x[1])
+		x = x[2:dim(x)[2]] 	
+		cat("assigning group\n")
+		print(group)
+ 	}
+	n <- nrow(x)
+	p <- ncol(x)
+  #If the group and matrix don't correspond
+	if (n != length(group)){ 								
+		cat(paste("n: ", n, " and groups: ", length(group), "\n"))
+        stop("nrow(x) and length(group) are incompatible")
+	}
+    g <- as.factor(group)
+    g
+    #Groups
+    level <- lev1 <- levels(g)								
+    #Number of elements in a group
+    count <- as.vector(table(g))							
+
+   #Remove group if it doesnt exist in the data
+	 if (any(count == 0)) {								
+        empty <- level[count == 0]
+        warning(sprintf(ngettext(length(empty), "group %s is empty", 
+            "groups %s are empty"), paste(empty, collapse = " ")), 
+            domain = NA)
+        lev1 <- level[count > 0]
+        g <- factor(g, level = lev1)
+        count <- as.vector(table(g))
+    }
+
+	Ng = length(lev1)
+	# Matrix of group means from x
+	groupMean <- tapply(x, list(rep(g, p), col(x)), mean)		
+	
+	#Covariance matrix
+	if(missing(cov)){											
+		inverted = FALSE
+		cov = cor(x)											
+	}
+  #Covariate check		
+	else{													
+		if(dim(cov) != c(p,p))
+			stop("covariate matrix not of dimension = (p,p)\n")
+	}
+  
+	#distance matrix
+	distance = matrix(nrow=Ng, ncol=Ng)										
+	dimnames(distance) = list(names(groupMean), names(groupMean))
+
+	means = round(group.means, digits)
+	cov = round(cov, digits)
+	distance = round(Distance, digits)
+	
+	for(i in 1:Ng){
+		distance[i,]= mahal(groupMean, groupMean[i,], cov, inverted)
+	}
+
+	result <- list(means = groupMean, cov = cov, distance = distance)
+	result
+}
+```
+6.a
+```{r}
+library(MatchIt)
+
+trcMatch <- matchit(TRCKNOW~age+female+wealth+religiosity+ethsalience+rcblack+rcwhite+rccol+EDUC, data = trc, distance = "mahalanobis")
+trcMatch <- match.data(trcMatch)
+```
+
+
+```{r}
+meanDiff(trcMatch$RUSTAND[trcMatch$TRCKNOW==1], trcMatch$RUSTAND[trcMatch$TRCKNOW==0])
+```
+The ATE is estimated to be -0.218902 and the CI is (-0.3098527, -0.1279513). 
+
+6.b
+```{r}
+trcMatch <- matchit(TRCKNOW~age+female+wealth+religiosity+ethsalience+rcblack+rcwhite+rccol+EDUC, data = trc, distance = "mahalanobis", ratio=3)
+trcMatch <- match.data(trcMatch)
+
+meanDiff(trcMatch$RUSTAND[trcMatch$TRCKNOW==1], trcMatch$RUSTAND[trcMatch$TRCKNOW==0])
+```
+The SE for part a is 0.04640426 and the SE for part a is 0.04433111, which is slightly lower.
+<br>
+<br>
+6.c
+```{r}
+trcMatch <- matchit(TRCKNOW~age+female+wealth+religiosity+ethsalience+rcblack+rcwhite+rccol+EDUC, data = trc, distance = "mahalanobis", exact = ~age+female+wealth+religiosity+ethsalience+rcblack+rcwhite+rccol+EDUC, replace = TRUE)
+trcMatch <- match.data(trcMatch)
+
+meanDiff(trcMatch$RUSTAND[trcMatch$TRCKNOW==1], trcMatch$RUSTAND[trcMatch$TRCKNOW==0])
+```
+The SE increased to 0.1823855 compared to the previous parts	
+<br>
+<br>
+6.d

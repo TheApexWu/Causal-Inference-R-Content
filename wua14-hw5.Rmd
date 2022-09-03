@@ -1,0 +1,332 @@
+---
+title: "wua14_hw5"
+author: "Alex Wu"
+date: "2022-08-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library("broom")
+library("tidyverse")
+library("dbplyr")
+library("readstata13")
+library("MatchIt")
+library("estimatr")
+library("readxl")
+library("haven")
+library("magrittr")
+
+```
+1.1
+<br>
+<br>
+Given that $E[Y_{i1}(0) - Y_{i0}(0)|D_i=1] = E[Y_{i1}(0) - Y_{i0}(0)|D_i=0]$. 
+
+Let the random variables $D_i$ and $\epsilon_{it}$ satisfy $E[\epsilon_{i1}|D_i = d] = E[\epsilon_{i0}|D_i=d]$. Note that $\delta_t$, $u_i$, and $\tau_i$ are constants. 
+
+Therefore, we can prove that $E[Y_{i1}(0)-Y_{i0}(0)|D_i=1] = E[Y_{i1}(0)-Y_{i0}(0)|D_i=0]$ respectively:
+
+$E[Y_{i1}(0) - Y_{i0}(0)|D_i=1]$ can be rewritten as: 
+
+$$
+E[Y_{i1}(0) - Y_{i0}(0)|D_i=1] = E[\delta_1 + u_i + \epsilon_{i1}|D_i = 1] - E[\delta_0 + u_i + \epsilon_{i0}| D_i = 1] \\
+ = \delta_1 + u_i + E[\epsilon_{i1}|D_i = 1] - \delta_0 - u_i -  E[\epsilon_{i0}|D_i = 1] \\
+ = \delta_1 - \delta_0
+$$
+$E[Y_{i1}(0) - Y_{i0}(0)|D_i=0]$ can rewritten as:
+
+$$
+E[Y_{i1}(0) - Y_{i0}(0)|D_i=0] = E[\delta_1 + u_i + \epsilon_{i1}|D_i = 0] - E[\delta_0 + u_i + \epsilon_{i0}| D_i = 0] \\
+= \delta_1 + u_i + E[\epsilon_{i1}|D_i = 0] - \delta_0 - u_i -  E[\epsilon_{i0}|D_i = 0] \\
+= \delta_1 - \delta_0
+$$
+Thus, the initial statement is proven true.
+<br>
+<br>
+1.2
+<br>
+<br>
+We must prove that $E[\hat{\tau}] = \frac{1}{n}\sum_{i=1}^{n} \tau_i$
+
+$$
+\hat{\tau} = \frac{1}{n_t}\sum_{i=1}^{n}(Y_{i1} - Y_{i0})D_i - \frac{1}{n_c}\sum_{i=1}^{n}(Y_{i1} - Y_{i0})(1-D_i) \\
+ = E[\frac{1}{n_t}\sum_{i=1}^{n}(Y_{i1} - Y_{i0})D_i - \frac{1}{n_c}\sum_{i=1}^{n}(Y_{i1} - Y_{i0})(1-D_i)] \\
+ = \frac{1}{n_t}\sum_{i=1}^{n}E[(Y_{i1} - Y_{i0})D_i] - \frac{1}{n_c}\sum_{i=1}^{n}E[(Y_{i1} - Y_{i0})(1-D_i)]
+$$
+Notice that: 
+$$
+E[(Y_{i1} - Y_{i0})D_i] = E[E[(Y_{i1} - Y_{i0})D_i)|D_i]] \\
+ = E[(Y_{i1} - Y_{i0})(1)|D_i = 1]Pr(D_i = 1) + E[(Y_{i1} - Y_{i0})(0)|D_i = 0]Pr(D_i = 0) \\
+ = E[(Y_{i1} - Y_{i0})|D_i = 1]Pr(D_i = 1)
+$$ 
+ 
+It is clear that $Y_{i0} = \delta_0 + u_i + \epsilon_{i0}$, while $Y_{i1} = \tau_i D_i + \delta_i + u_i + \epsilon_{i1}$. 
+
+Thus, it is proven that: 
+$$
+E[\hat{\tau}] = \frac{1}{n}\sum_{i=1}^{n} \tau_i
+$$ 
+
+1.3
+<br>
+<br>
+The formula for $E[\hat{\tau}_{t=1}] - \frac{1}{n}\sum_{i=1}^{n} \tau_i$ must be derived under terms of $\eta_i(d)$. 
+
+$$
+\hat{\tau}_{t=1} = \frac{1}{n_t} \sum_{i=1}^{n} Y_{i1}D_i - \frac{1}{n_c}\sum_{i=1}^{n} Y_{i1} (1-D_i)
+$$
+Let it shown that: 
+
+$$
+E[\hat{\tau}_{t=1}] = E[\frac{1}{n_t}\sum_{i=1}^{n} Y_{i1}D_i - \frac{1}{n_c}\sum_{i=1}^{n} Y_{i1} (1-D_i)] \\
+
+ = \frac{1}{n_t}\sum_{i=1}^{n} E[Y_{i1}D_i] - \frac{1}{n_c}\sum_{i=1}^{n}E[Y_{i1} (1-D_i)]
+$$
+We can observe that for $E[Y_{i1}D_i]$ and $E[Y_{i1}(1-D_i)]$,
+
+$E[Y_{i1}D_i]$ can be re-written as:
+$$
+E[Y_{i1}] = (\tau_i + \delta_t + u_i)\frac{n_t}{n} + E[\epsilon_{i1}|D_i = 1]\frac{n_t}{n}
+$$
+
+We can also be observe that $E[Y_{i1}(1-D_i)]$ can be re-written as:
+$$
+E[Y_{i1}(1-D_i)] = (\delta_t + u_i)\frac{n_c}{n} + E[\epsilon_{i1}|D_i = 0] \frac{n_c}{n}
+$$
+With the original formula, it can be said that: 
+
+$$
+\frac{1}{n_t}\sum_{i=1}^{n} E[Y_{i1}D_i] - \frac{1}{n_c}\sum_{i=1}^{n}E[Y_{i1} (1-D_i)] = \frac{1}{n_t}\sum_{i=1}^{n}(\tau_i + \delta_t + u_i)\frac{n_t}{n} + E[\epsilon_{i1}|D_i = 1]\frac{n_t}{n} - \frac{1}{n_c}\sum_{i=1}^{n} (\delta_t + u_i)\frac{n_c}{n} + E[\epsilon_{i1}|D_i = 0]\frac{n_c}{n} \\
+ = \frac{1}{n}\sum_{i=1}^{n} \tau_i + \frac{1}{n}\sum_{i=1}^{n} (\delta_t + u_i) + \frac{1}{n}\sum_{i=1}^{n} E[\epsilon_{i1}|D_i = 1] - \frac{1}{n}\sum_{i=1}^{n} (\delta_t + u_i) - \frac{1}{n}\sum_{i=1}^{n} E[\epsilon_{i1}|D_i = 0] \\
+ = \frac{1}{n}\sum_{i=1}^{n} \tau_i + \frac{1}{n}\sum_{i=1}^{n} E[\epsilon_{i1}|D_i = 1] - E[\epsilon_{i1}|D_i = 0]
+$$ 
+
+Therefore, it can be observed that: 
+
+$$
+E[\hat{\tau}_{t=1}] - \frac{1}{n}\sum_{i=1}^{n} \tau_i = \frac{1}{n}\sum_{i=1}^{n} E[\epsilon_{i1}|D_i = 1] - E[\epsilon_{i1}|D_i = 0] \\
+= \frac{1}{n}\sum_{i=1}^{n} \eta_i(1) - \eta_i(0)
+$$
+
+Thus, a formula for the bias $\hat{\tau}_{t=1}$ such that $E[\hat{\tau}_{t=1}] - \frac{1}{n}\sum_{i=1}^{n} \tau_i$ in terms of the constant $\eta_i(d)$ can be and has been derived. 
+
+
+2
+<br>
+<br>
+We must show that $E[\hat{\tau}_{Wald}^{p}] = E[Y_i(1) - Y_i(0)|D_i(1) > D_i(0)]$. 
+
+Let $\frac{1}{n_t}\sum_{i=1}^n Y_iZ_i - \frac{1}{n_c}\sum_{i=1}^{n} Y_i(1-Z_i)$ be unbiased. 
+It is assumed that the ignorability and consistency holds at all levels. 
+Let 
+$$
+E[Y_iZ_i] = E[Y_i|Z_i=1]Pr(Z_i = 1) \\
+=\frac{n_t}{n}E[Y_i(D_i(1))|Z_i=1] \\
+=\frac{n_t}{n}E[Y_i(D_i(1))]
+$$
+
+
+Let 
+$$
+E[Y_i(1-Z_i)] = \frac{n_c}{n}E[Y_i(D_i(0))]
+$$
+It can be shown that 
+
+$$
+E[\frac{1}{n_t}\sum_{i=1}^n Y_iZ_i - \frac{1}{n_c}\sum_{i=1}^{n} Y_i(1-Z_i)] = \frac{1}{n_t}\sum_{i=1}^{n} E[Y_iZ_i] - \frac{1}{n_c}\sum_{i=1}^{n} E[Y_i(1-Z_i)] \\
+ = \frac{1}{n_t}\sum_{i=1}^{n}\frac{n_t}{n} E[Y_i(D_i(1))] - \frac{1}{n_c}\sum_{i=1}^{n} \frac{n_c}{n} E[Y_i(D_i(0))] \\
+ = \frac{1}{n}\sum_{i=1}^{n} E[Y_i(D_i(1)) - Y_i(D_i(0))]
+$$
+
+After, $E[Y_i(D_i(1)) - Y_i(D_i(0))]$ can be decomposed using the law of iterated expectations. 
+
+$$
+E[Y_i(D_i(1)) - Y_i(D_i(0))] = E[Y_i(1) - Y_i(0)|D_i(1) > D_i(0)]Pr(D_i(1) > D_i(0)) \\
+ + E[Y_i(d) - Y_i(d)|D_i(1) = D_i(0) = d]Pr(D_i(1) = D_i(0)) \\
+ + E[Y_i(0) - Y_i(1)|D_i(1) < D_i(0)]Pr(D_i(1) < D_i(0)) \\
+ = E[Y_i(1) - Y_i(0)|D_i(1) > D_i(0)]Pr(D_i(1) > D_i(0)) \\
+ = E[Y_i(1) - Y_i(0)|D_i(1) > D_i(0)]p
+$$ 
+As a result of monotonicity being applied, $Pr(D_i(1) > D_i(0)) = 0$. We can then state that: 
+
+$$
+E[\frac{1}{p}(\frac{1}{n_t}\sum_{i=1}^{n} Y_iZ_i - \frac{1}{n_c}\sum_{i=1}^{n} Y_i(1-Z_i))] \\
+= \frac{1}{n}\sum_{i=1}^{n}\frac{1}{p}E[Y_i(D_i(1)) - Y_i(D_i(0))] \\
+= \frac{1}{n}\sum_{i=1}^{n}\frac{1}{p}E[Y_i(1) - Y_i(0)|D_i(1) > D_i(0)]p \\
+= \frac{1}{n}\sum_{i=1}^{n}E[Y_i(1) - Y_i(0)|D_i(1) > D_i(0)] \\
+= \tau_{LATE}
+$$ 
+
+It is observed that for the independent and identically distributed observations from the same distribution, we can see that
+$$
+\tau_{LATE} = E[Y_i(1) - Y_i(0)|D_i(1) > D_i(0)]
+$$
+
+3.1
+```{r}
+ohie <- read_dta("OHIE.dta")
+```
+
+
+```{r}
+#Blood pressure ITT
+bloodpITT <- lm_robust(tab2bp_hyper ~ treatment, ohie)
+summary(bloodpITT)
+```
+The ITT effects for blood pressure is -0.0016. The 95% confidence interval is [-0.1458, 0.01138]. The null hypothesis is winning the Medicaid lottery has no effect on high blood pressure. With the results, we must fail to reject the null at alpha = 0.05
+```{r}
+#Depression ITT
+depressITT <- lm_robust(tab2phqtot_high ~ treatment, ohie)
+summary(depressITT)
+```
+The ITT effects for depression is -0.03493. The 95% confidence interval is [-0.05102, 0.01885]. The null hypothesis is winning the Medicaid lottery has no effect on depression. With the results, we must reject the null at alpha = 0.05. Winning the Medicaid lottery does decrease depression in individuals.
+```{r}
+#Catastrophic medical expenditures ITT
+cmeITT <- lm_robust(tab4_catastrophic_exp_inp ~ treatment, ohie)
+summary(cmeITT)
+```
+
+The ITT effects for catastrophic medical expenditures is -0.01527. The 95% confidence interval is [-0.02287, -0.007665]. The null hypothesis is winning the Medicaid lottery has no effect on catastrophic medical expenditures. With the results, we must reject the null at alpha = 0.05. Winning the medicaid lottery does decrease the chance of experiencing catastrophic medical expenditures in individuals.
+
+```{r}
+#Medical needs met ITT
+medneedsITT <- lm_robust(tab5_needmet_med_inp ~ treatment, ohie)
+summary(medneedsITT)
+```
+The ITT effects for blood pressure is 0.03446. The 95% confidence interval is [0.01732, 0.0516]. The null hypothesis is winning the Medicaid lottery has no effect on medical needs met. With the results, we must reject the null at alpha = 0.05. Winning the Medicaid lottery would increase how individuals felt regarding their medical needs being met.
+
+<br>
+<br>
+3.2
+<br>
+<br>
+```{r}
+#Blood pressure naive OLS estimate effect
+bloodpNaive <- lm_robust(tab2bp_hyper ~ ohp_all_ever_admin, ohie)
+summary(bloodpNaive)
+```
+The naive OLS estimate of Medicaid enrollment on elevated blood pressure is -0.01805. The 95% confidence interval is [-0.03209, -0.004014]. The null hypothesis is the Medicaid enrollment has no effect on blood pressure. This null for enrolled and unenrolled respondents, can be rejected at alpha = 0.05. This suggests that enrollment decreases elevated blood pressure.
+
+```{r}
+#Depression naive OLS estimate effect
+depressNaive <- lm_robust(tab2phqtot_high ~ ohp_all_ever_admin, ohie)
+summary(depressNaive)
+```
+The naive OLS estimate of Medicaid enrollment on depression is 0.04932. The 95% confidence interval is [0.03121, 0.06742]. Given these values, it is suggested that enrolling means that the participant was more likely to be positive for depression compared to the unenrolled The null hypothesis is the Medicaid enrollment has no effect on depression. This null for enrolled and unenrolled respondents, can be rejected at alpha = 0.05.
+
+```{r}
+#Catastrophic medical expenditures naive OLS estimate effect
+cmeNaive <- lm_robust(tab4_catastrophic_exp_inp ~ ohp_all_ever_admin, ohie)
+summary(cmeNaive)
+```
+The naive OLS estimate of Medicaid enrollment on catastrophic medical expenditures is -0.01073. The 95% confidence interval is [-0.01867, -0.002784]. Given these values, it is suggested that enrolling meant that the participant was more likely to not have any incidences of catastrophic medical expenditures compared to unenrolled. The null hypothesis is that Medicaid enrollment has no effect of incidence of catastrophic medical expenditures. This null for enrolled and unenrolled respondents, can be rejects at alpha = 0.05. 
+
+```{r}
+#Medical need met naive OLS estimate effect
+medNeedsNaive <- lm_robust(tab5_needmet_med_inp ~ ohp_all_ever_admin, ohie)
+summary(medNeedsNaive)
+```
+The naive OLS estimate of Medicaid enrollment on healthcare needs met is 0.06127. The 95% confidence interval is [0.04268, 0.07985]. It is suggested enrolling means that participant was more likely to feel that their healthcare needs were met compared to the unenrolled. The null hypothesis is the Medicaid enrollment has no effect on whether an individuals feels their healthcare needs were met. This null for enrolled and unenrolled respondents, can be rejects at alpha = 0.05.
+<br>
+<br>
+Based on the given results, the estimates for ATE of Medicaid enrollment are most likely to be biased. This is due to the enrollment not being directly randomized for the participants and the estimates themselves considering the confounders that may be in the data, especially on participant enrollment and their effect on the outcome. It is likely that participants had access to the experiement from another means than the lottery, which meant that they have different outcomes in terms of income and insurance status.
+
+<br>
+<br>
+3.3
+<br>
+<br>
+```{r}
+#First stage regression to estimate effects of selection under Medicaid enrollemnt
+firstReg <- lm_robust(ohp_all_ever_admin ~ treatment, ohie)
+summary(firstReg)
+```
+
+Based on the results, it is clear that the probability of enrollment for a participant
+increased by 23.64% if they had won the lottery. Because we are estimating compliance rates this means that the 23.64% of participants will be motivated to enroll to Medicaid if they had won the lottery and will not enroll if they had not selected to win the lottery. It should also be noted however, that 14.55% of the participants who did not win the lottery could still enroll within the program. In terms of strength,
+we can observed that the instrument for actual Medicaid enrollment is a very strong. This is shown through the F-statistic, which is 1.613e+03. Since F-statistics less than 10 indicate a weak instrument on the first stage, this is a strong instrument due to how large
+the  value is in the regression. This is likely due to the sample size of over 20000, and the
+enrollment rate doubling or size of effect.
+<br>
+<br>
+3.4
+<br>
+<br>
+```{r}
+#Blood pressure instrument variables
+bloodpIV <- iv_robust(tab2bp_hyper ~ ohp_all_ever_admin | treatment, ohie)
+summary(bloodpIV)
+```
+According to the results, the IV estimate of Medicaid enrollment on blood pressure is -0.0063. The 95% confidence interval is [-0.05738, 0.04478]. Given these values, the null hypothesis at alpha = 0.05 fails to reject. Thus, there is no effect of Medicaid enrollment on blood pressure. Previously, the naive result indicated that enrolling decreased incidences of blood pressure. The IV estimate is different, helping us conclude that the naive OLS's conclusion was have been a result of potential unobserved confounders. It can be stated that enrollment does not affect occurences of blood pressure.
+
+
+```{r}
+#Depression instrument variables
+depressIV <- iv_robust(tab2phqtot_high ~ ohp_all_ever_admin | treatment, ohie)
+summary(depressIV)
+```
+According to the results, the IV estimate of Medicaid enrollment on depression is -0.1376. The 95% confidence interval is [-0.2020, -0.0732]. Given these values, the null hypothesis at alpha = 0.05 can be rejectd. Thus, there is an effect of Medicaid enrollment on depression. Previously, the naive result indicated that enrolling increased positivity for depression while the IV estimate decreases by 13.76%, an opposite effect.  It can be stated that enrollment decreases occurences of depression.
+
+```{r}
+#Catastrophic medical expenditures instrument variables
+cmeIV <- iv_robust(tab4_catastrophic_exp_inp ~ ohp_all_ever_admin | treatment, ohie)
+summary(bloodpIV)
+```
+According to the results, the IV estimate of Medicaid enrollment on catastrophic expenditures is -0.06036. The 95% confidence interval is [-0.09060, -0.03012]. Given these values, the null hypothesis at alpha = 0.05 can be rejected.  Previously, the naive result indicated that enrolling decreases the chance of incidences of catastrophic expenditure by 1.07% while IV estimate has a decrease of 6.036%, a greater reduction effect. Both methods indicate the same direction of decrease that Medicaid enrollment has on the chance of incidence in catastrophic expenditure.
+
+```{r}
+#Medical needs met instrument variables
+medneedsIV <- iv_robust(tab5_needmet_med_inp ~ ohp_all_ever_admin | treatment, ohie)
+summary(medneedsIV)
+```
+According to the results, the IV estimate of Medicaid enrollment on healthcare needs met is 0.1355. The 95% confidence interval is [0.06798, 0.2029]. Given these values, the null hypothesis at alpha = 0.05 can be rejected, which means there is an effect of Medicaid making participants feel that healthcare needs were met.  Previously, the naive result indicated that enrolling increased their satisfied needs by 6.127% while IV estimate has a greater effect.  by 1.07% while IV estimate has a decrease of 6.036%, a greater reduction effect. Both methods indicate the same direction of increase that Medicaid enrollment has on the feeling that individual's needs were met.
+<br>
+<br>
+3.5
+<br>
+<br>
+Some additional assumptions we have to make in order to interpret estimates from 3.4 are that the ATE will be the same across the total population for all the groups. Because the IV focuses n the ATE of compliers, the populations ATE's should stay the same. We must also assume that there will be no diversification (not heterogenous) in the effects driven by the strata for any of the groups and that the treatment effect are constant. With this assumption, we are able to interpret estimates from  3.4 as ATEs on a total population.
+
+<br>
+<br>
+4.1
+<br>
+<br>
+```{r}
+brf <- read_dta("bases_replication_final.dta")
+```
+
+```{r}
+#Number of bases group 
+noBase <- sum(brf$bases6 == 0)
+noBase
+```
+
+```{r}
+eachNoBase <- sum(tapply(brf$bases6 == 0, brf$municipality, mean))
+eachNoBase
+```
+
+```{r}
+#Number of municipalities 
+munLength <- length(table(brf$municipality))
+munLength
+```
+
+According to the calculated values, there are 16772 unit time observations under the "no-bases" control group and 936 municipalities in the dataset (904 of them with no bases). The bases variable is a time variant. We can also say the military aid variable is unit-invariant, which means that it changes over time due to the lack of municipal level info for US aid. The assumption the author uses seems to be that fluctuations only affect places have military bases within them. To better understand the fluctuations, we could compare the municipalities with bases to ones without identifying the effect of aid, as it is for local attacks. 
+<br>
+<br>
+4.2
+<br>
+<br>
+The authors are using constant effects assumption because they are applying the two-way fixed effects model. This model implies that at time "it", the potential outcomes can only depend on the assigned treatment at the same given time. Another assumption made is parallel trends, where $\alpha_i$ (an intercept shift at unit level) and $\gamma_i$ (common occuring shocks in time trend) are sufficient to adjust for confounding variables. 
+<br>
+<br>
+4.3
+<br>
+<br>
+```{r}
+regEstimate <- lm_robust(formula = paratt ~ bases6 + lrmilnar_col + bases6xlrmilnar_col + lnnewpop, data = brf, clusters = municipality, fixed_effects = ~as.factor(municipality) + as.factor(year), se_type = "CR0")
+summary(regEstimate)
+```
+Based on the results of the regression, the effect of US military and narcotics aid on the number of paramilitary attacks is 1.503e-01, which 15.3%. The confidence interval is [0.0329, 0.2682]. This means that the ATE of each additional, logged quantity of military aid will result in an increase of attacks on the number on municipalities by 15.3%. The null hypothesis is that US aid had no effect on the number of paramilitary attack.  The null hypothesis at alpha = 0.05 can be reject since the p-value is greater than 0.05. Thus, we can conclude that US military aid increased the incidences where paramilitary attacks occur in Coloumbia. 

@@ -1,0 +1,255 @@
+---
+title: "wua14-HW1"
+author: "Alex Wu"
+date: "2022-07-16"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+
+
+
+```{r include=FALSE}
+lead <- read.csv(file = "leaders.csv") 
+class(lead)
+#1.1
+nrow(lead)
+nations <- lead[, "country"]
+length(unique(nations))
+years <- lead[, "year"]
+mean(tapply(nations, years, length))
+
+#1.2
+
+summary(lead$result)
+str(lead$result)
+table(lead$result)
+lead$success <- c(ifelse(lead$result == "dies between a week and a month" | lead$result == "dies between a day and a week" | lead$result == "dies within a day after the attack" | lead$result == "dies, timing unknown", 1, 0))
+mean(lead$success)
+
+#1.3
+mean(lead$politybefore)
+mean(lead$polityafter)
+tapply(lead$politybefore, lead$success, mean)
+tapply(lead$age, lead$success, mean)
+
+
+#1.4
+lead$warbefore <- ifelse(lead$interwarafter == 1 | lead$civilwarbefore == 1, 1, 0)
+tapply(lead$warbefore, lead$success, mean)
+
+#1.5
+tapply(lead$polityafter - lead$politybefore, lead$success, mean)
+(-0.05864198) - (-0.15136054)  
+
+tapply(lead$interwarafter - lead$interwarbefore, lead$success, mean)
+ (-0.14814815) - (-0.01020408)
+
+tapply(lead$civilwarafter - lead$civilwarbefore, lead$success, mean)
+(-0.04081633) - (0.00000000)
+
+
+
+#2.1.1
+
+
+Unit <- c("Rheia", "Kronos", "Demeter", "Hades", "Hestia", "Poseidon", "Hera", "Zeus", "Artemis", "Apollo", "Leto", "Ares", "Athena", "Hephaestus", "Aphrodite", "Cyclope", "Persephone", "Hermes", "Hebe", "Dionysus") 
+Di <- c(0,0,0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1) 
+Yi0 <- c(0,1,0,0,0,1,0,0,1,1,0,1,1,0,0,0,1,1,1,1) 
+Yi1 <- c(1,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,1,0,0,0)
+table1 <- data.frame(Unit, Di, Yi0, Yi1) 
+table1$ITE = table1$Yi1 - table1$Yi0 
+table1$obs_outcome = table1$Yi1*table1$Di + table1$Yi0*(1-table1$Di) 
+table1[,c('Unit',"ITE","obs_outcome")]
+
+subset(table1, select=c("Unit"), subset = (table1$ITE!=0))
+#2.1.2
+
+mean(Yi1)
+mean(Yi0)
+
+ATE <- mean(Yi1) - mean(Yi0)
+ATE
+
+#2.1.3
+mean(table1$ITE)
+
+#2.1.4
+
+
+#2.1.5
+mean(table1$`Yi1`[table1$Di == 1 ])- mean(table1$`Yi0`[table1$Di == 0])
+
+#2.2.1
+treatA_ATE <- 3/10 - 2/10
+treatB_ATE <- 3/10 - 1/10
+
+treatA_ATE
+treatB_ATE
+
+
+```
+Alex Wu - wua14
+Causal Inference - Parijat Dube
+
+1.1
+```{r}
+nrow(lead)
+nations <- lead[, "country"]
+length(unique(nations))
+years <- lead[, "year"]
+mean(tapply(nations, years, length))
+```
+
+There are 250 recorded assassination attempts and 88 unique countries. The average number of attempts per year among these countries is 2.45098.
+
+1.2
+```{r}
+summary(lead$result)
+str(lead$result)
+table(lead$result)
+lead$success <- c(ifelse(lead$result == "dies between a week and a month" | lead$result == "dies between a day and a week" | lead$result == "dies within a day after the attack" | lead$result == "dies, timing unknown", 1, 0))
+mean(lead$success)
+```
+
+The overall success rate of leader assassination is 0.216. This result speaks to the fact that success of assassination is randomly determined
+
+1.3
+```{r}
+mean(lead$politybefore)
+mean(lead$polityafter)
+tapply(lead$politybefore, lead$success, mean)
+tapply(lead$age, lead$success, mean)
+```
+The average polity scores between successful and failed are quite similar (-1.518667 and -1.65). The polity score is usually higher among countries with a successful assassination attempt and the successful assassination attempts are associated with leaders that are older. 
+
+1.4 
+```{r}
+lead$warbefore <- ifelse(lead$interwarafter == 1 | lead$civilwarbefore == 1, 1, 0)
+tapply(lead$warbefore, lead$success, mean)
+```
+The chance of having a war prior to success is 0.352 and the chance of having a war prior to failure is 0.372.
+We can not conclude that the chance of having a war because the results of the two are slightly different and do not pass the significance test
+1.5
+```{r}
+tapply(lead$polityafter - lead$politybefore, lead$success, mean)
+(-0.05864198) - (-0.15136054)  
+
+tapply(lead$interwarafter - lead$interwarbefore, lead$success, mean)
+ (-0.14814815) - (-0.01020408)
+
+tapply(lead$civilwarafter - lead$civilwarbefore, lead$success, mean)
+(-0.04081633) - (0.00000000)
+```
+
+The successful assassinations did not cause democratization but it does the opposite as the polity score is decreased by 0.6
+2.1.1
+```{r}
+Unit <- c("Rheia", "Kronos", "Demeter", "Hades", "Hestia", "Poseidon", "Hera", "Zeus", "Artemis", "Apollo", "Leto", "Ares", "Athena", "Hephaestus", "Aphrodite", "Cyclope", "Persephone", "Hermes", "Hebe", "Dionysus") 
+Di <- c(0,0,0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1) 
+Yi0 <- c(0,1,0,0,0,1,0,0,1,1,0,1,1,0,0,0,1,1,1,1) 
+Yi1 <- c(1,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,1,0,0,0)
+table1 <- data.frame(Unit, Di, Yi0, Yi1) 
+table1$ITE = table1$Yi1 - table1$Yi0 
+table1$obs_outcome = table1$Yi1*table1$Di + table1$Yi0*(1-table1$Di) 
+table1[,c('Unit',"ITE","obs_outcome")]
+
+subset(table1, select=c("Unit"), subset = (table1$ITE!=0))
+```
+
+2.1.2
+```{r}
+mean(Yi1)
+mean(Yi0)
+ATE <- mean(Yi1) - mean(Yi0)
+ATE
+```
+We can conclude that the ATE is null and there exists no causal effect
+
+2.1.3
+```{r}
+mean(table1$ITE)
+```
+The ITEs for the population are 0. ATE is always the same as the average of ITEs for a population
+
+2.1.4
+Sharp causal null is false. Although the ATE is 0, it does not mean that every ITE is 0 but rather they sum towards 0.
+
+2.1.5
+```{r}
+mean(table1$`Yi1`[table1$Di == 1 ])- mean(table1$`Yi0`[table1$Di == 0])
+```
+There is an association with the treatment and outcome as the treatment causes the population be at more risk of death than the untreated as the mean associational difference is 10/91. 
+
+2.2.1
+The ATE for treatments A and B are 0.1 and 0.2 respectively
+
+2.2.2
+10 patients would be needed to save 1 life for treatment A
+5 patients would be needed to save 1 life for treatment B
+
+2.2.3
+The government should prefer treatment B as not only is it more cost-efficient but also the superior treatment according to the prior calculations.
+
+3.1
+The interpretation of the ATT is it is showing how effect of the treatment is on average. This is different from the ATE because ATT does not say anything about the untreated.
+
+3.2
+$$
+τ' = E[Yi(1) - Yi(0)|Di = 1] \\
+τ' = E[Yi(1)|Di = 1] - E[Yi(0)|Di = 1] \\
+  given that Yi(0)⫫ Di \\
+τ' = E[Yi(1)|Di = 1] - E[Yi(0)|Di = 0] \\
+  given that Yi(0), Yi(0), ... are iid \\
+τ' = E[Yi(1)|Di = 1] - E[Yi(1)|Di = 1]
+$$
+
+
+3.3
+Weak ignorability is necessary to assume for both the treated and control outcomes. This allows for the statements:
+
+$$
+E[Yi(0)|D = 1] = E[Yi(0)|D = 0]
+$$
+$$
+E[Yi(1)|D = 1] = E[Yi(1)|D = 0]
+$$
+
+to be considered true. This assumption is enough as it embodies the ideal randomized control trial
+
+
+
+4.1
+Distribution Di follows a Bernouli distribution
+4.2
+E[Nt] is the expected value of Np
+$$
+E[N_t] = n* E[D_i] = n * Pr(D_i = 1) = n * p
+$$
+4.3
+Var[Nt] is the variance of Npq
+$$
+Var[N_t] = n * p(1-p)
+$$
+4.4
+The value of p that should chosen is 0.5 given that:
+$$
+\frac{n_t}{n} 
+$$
+4.b 
+$$       
+τ'_{I\hat{P}W} = \frac{1}{n}\sum_{i=1}^{n}Y_i\frac{D_i}{p}-Y_i\frac{1-D_i}{1-p} \\
+τ'_{I\hat{P}W} = \frac{1}{n}\sum_{i=1}^{n}Y_iD_i\frac{1}{p}-\sum_{i=1}^{n}(1-D_i)Y_i\frac{1}{1-p} \\
+τ'_{I\hat{P}W} = \frac{1}{n}\sum_{i=1}^{n}Y_iD_i\frac{n}{n_t}-\frac{1}{n}\sum_{i=1}^{n}(1-D_i)Y_i\frac{n}{n_c} \\
+τ'_{I\hat{P}W} = \frac{1}{n_t}\sum_{i=1}^{n}Y_iD_i-\frac{1}{n_c}\sum_{i=1}^{n}(1-D_i)Y_i \\
+E[τ'_{I\hat{P}W}] = E[\frac{1}{n_t}\sum_{i=1}^{n}Y_iD_i-\frac{1}{n_c}\sum_{i=1}^{n}(1-D_i)Y_i] \\
+E[τ'_{I\hat{P}W}] = \frac{1}{n_t}\sum_{i=1}^{n}E[Y_iD_i]-\frac{1}{n_c}\sum_{i=1}^{n}E[(1-D_i)Y_i] \\
+E[τ'_{I\hat{P}W}] = \frac{1}{n_t}\sum_{i=1}^{n}E[Y(1)]Pr(D_i = 1) -\frac{1}{n_c}\sum_{i=1}^{n}E[(Y(0)]Pr(D_i=0) \\ 
+E[τ'_{I\hat{P}W}] = \frac{1}{n_t}\sum_{i=1}^{n}E[Y(1)]\frac{n_t}{n} -\frac{1}{n_c}\sum_{i=1}^{n}E[(Y(0)]\frac{n_c}{n} \\
+E[τ'_{I\hat{P}W}] = \frac{1}{n}\sum_{i=1}^{n}E[Y(1)] -\frac{1}{n}\sum_{i=1}^{n}E[(Y(0)] \\
+E[τ'_{I\hat{P}W}] = \frac{1}{n}\sum_{i=1}^{n}E[Y(1) -Y(0)] = τ
+$$
+
+
